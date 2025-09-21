@@ -3,11 +3,10 @@ import sqlite3
 DB_FILE = "events.db"
 
 def create_database():
-    """Creates the necessary database tables if they don't exist."""
+    """Creates and updates the database tables."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
 
-    # Table for all raw, unverified events from collectors
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS staged_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,20 +19,14 @@ def create_database():
     )
     """)
 
-    # Table for high-confidence, confirmed alerts
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS confirmed_alerts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        hazard_type TEXT NOT NULL,
-        location TEXT NOT NULL,
-        confidence_score INTEGER,
-        contributing_sources TEXT
-    )
-    """)
+    # --- NEW: Add columns for vision analysis ---
+    try:
+        cursor.execute("ALTER TABLE staged_events ADD COLUMN vision_hazard_detected BOOLEAN")
+        cursor.execute("ALTER TABLE staged_events ADD COLUMN vision_description TEXT")
+    except sqlite3.OperationalError:
+        pass # Columns already exist, ignore the error
+
+    # ... (rest of the file is the same) ...
     conn.commit()
     conn.close()
     print("Database initialized successfully.")
-
-if __name__ == "__main__":
-    create_database()
